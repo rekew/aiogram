@@ -1,10 +1,17 @@
 from aiogram import F, Router
 from aiogram.filters import CommandStart, Command
 from aiogram.types import Message, CallbackQuery
+from aiogram.fsm.state import StatesGroup, State
+from aiogram.fsm.context import FSMContext
 
 import app.keyboards as kb
 
 router = Router()
+
+class Reg(StatesGroup):
+    name = State()
+    number = State()
+
 
 @router.message(CommandStart())
 async def start_bot(msg : Message):
@@ -56,3 +63,21 @@ async def bmw(call : CallbackQuery):
 async def toyota(call : CallbackQuery):
     await call.answer('Уведомление от Toyota', show_alert=True)
     await call.message.edit_text('Ты нажал на Toyota', reply_markup=await kb.inline_builder())
+
+@router.message(Command('reg'))
+async def reg_one(msg : Message, state : FSMContext):
+    await state.set_state(Reg.name)
+    await msg.answer('Введите Ваше имя')
+
+@router.message(Reg.name)
+async def reg_two(msg : Message, state : FSMContext):
+    await state.update_data(name = msg.text)
+    await state.set_state(Reg.number)
+    await msg.answer('Введите номер телефона')
+
+@router.message(Reg.number)
+async def reg_three(msg : Message, state: FSMContext):
+    await state.update_data(number = msg.text)
+    data = await state.get_data()
+    await msg.answer(f'Спасибо, регистрация завершена.\n Имя: {data["name"]}\nНомер: {data["number"]}')
+    await state.clear()
